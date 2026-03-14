@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="F1 2026">
+<meta name="theme-color" content="#050005">
+<meta name="description" content="F1 2026 – Live timing, standings, track analysis and highlights">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>F1 2026</title>
+<style>
+/* ─────────────────────────────────────────────
+   RESET & TOKENS
+───────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  /* F1 palette */
+  --red:#FF1E1E; --red2:#FF375F; --red-glow:rgba(255,30,30,0.45);
+  --gold:#FFD60A; --silver:#C8C8C8; --bronze:#CD8040;
+  --teal:#2DD4BF; --cyan:#38BDF8; --green:#4ADE80;
+  --orange:#FB923C; --purple:#A78BFA;
+  /* glass system */
+  --g1:rgba(255,255,255,0.11);
+  --g2:rgba(255,255,255,0.07);
+  --g-heavy:rgba(255,255,255,0.16);
+  --gb:rgba(255,255,255,0.22);
+  --gs:rgba(255,255,255,0.55);
+  --bdr:rgba(255,255,255,0.18);
+  --bdr2:rgba(255,255,255,0.08);
+  /* text */
+  --t1:rgba(255,255,255,0.96);
+  --t2:rgba(255,255,255,0.62);
+  --t3:rgba(255,255,255,0.32);
+  /* radius */
+  --r-xl:22px; --r-lg:16px; --r-md:12px; --r-sm:8px; --r-pill:999px;
+  /* layout */
+  --tab-h:76px;
+  --sidebar-w:220px;
+}
+html{height:100%;-webkit-text-size-adjust:100%;}
+body{
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  background:#050005;color:var(--t1);
+  height:100%;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;}
+a{color:inherit;text-decoration:none;}
+img{display:block;}
+
+/* ─────────────────────────────────────────────
+   ANIMATED MESH BACKGROUND
+───────────────────────────────────────────── */
+#bg{
+  position:fixed;inset:0;z-index:0;overflow:hidden;
+  background:#050005;
+}
+.orb{
+  position:absolute;border-radius:50%;
+  filter:blur(90px);mix-blend-mode:screen;
+  animation:floatOrb var(--d,22s) ease-in-out infinite;
+  animation-delay:var(--dl,0s);
+  transform-origin:center center;
+}
+.o1{width:700px;height:700px;left:10%;top:-20%;
+    background:radial-gradient(circle at 40%,rgba(255,20,20,0.9),rgba(180,0,0,0.35) 50%,transparent 72%);
+    --d:24s;--dl:-4s;}
+.o2{width:500px;height:900px;right:-8%;top:5%;
+    background:radial-gradient(ellipse at 50% 30%,rgba(255,255,255,0.55),rgba(220,220,220,0.1) 55%,transparent 72%);
+    --d:30s;--dl:-16s;}
+.o3{width:650px;height:650px;left:-8%;bottom:-5%;
+    background:radial-gradient(circle,rgba(200,0,0,0.75),rgba(100,0,0,0.28) 50%,transparent 72%);
+    --d:26s;--dl:-10s;}
+.o4{width:420px;height:420px;left:38%;top:28%;
+    background:radial-gradient(circle,rgba(255,255,255,0.28),rgba(255,255,255,0.04) 55%,transparent 72%);
+    --d:19s;--dl:-3s;}
+.o5{width:360px;height:360px;right:12%;top:8%;
+    background:radial-gradient(circle,rgba(255,50,50,0.65),rgba(190,10,10,0.18) 58%,transparent 72%);
+    --d:32s;--dl:-22s;}
+.o6{width:900px;height:280px;left:0;bottom:-4%;
+    background:radial-gradient(ellipse,rgba(255,255,255,0.1),transparent 70%);
+    --d:38s;--dl:-19s;}
+/* Interactive light orb — follows button hovers */
+.o-interactive{
+  width:400px;height:400px;
+  background:radial-gradient(circle,rgba(255,60,60,0.7),rgba(255,0,0,0.2) 50%,transparent 70%);
+  pointer-events:none;transition:opacity 0.4s;opacity:0;
+  position:absolute;transform:translate(-50%,-50%);
+  --d:0s;filter:blur(60px);mix-blend-mode:screen;
+}
+@keyframes floatOrb{
+  0%{transform:translate(0,0) scale(1) rotate(0deg);}
+  25%{transform:translate(50px,-40px) scale(1.07) rotate(3deg);}
+  50%{transform:translate(-25px,55px) scale(0.93) rotate(-2deg);}
+  75%{transform:translate(65px,15px) scale(1.09) rotate(4deg);}
+  100%{transform:translate(0,0) scale(1) rotate(0deg);}
+}
+/* scanlines */
+#bg::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.025) 0px,rgba(0,0,0,0.025) 1px,transparent 1px,transparent 3px);
+}
+
+/* ─────────────────────────────────────────────
+   GLASS MATERIAL
+───────────────────────────────────────────── */
+.glass,.glass-heavy{
+  position:relative;overflow:hidden;
+  backdrop-filter:saturate(180%) blur(28px);
+  -webkit-backdrop-filter:saturate(180%) blur(28px);
+}
+.glass{
+  background:var(--g1);
+  border:0.5px solid var(--bdr);
+  box-shadow:0 6px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.13);
+}
+.glass-heavy{
+  background:var(--g-heavy);
+  border:0.5px solid rgba(255,255,255,0.24);
+  box-shadow:0 14px 44px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.2);
+  backdrop-filter:saturate(200%) blur(44px);
+  -webkit-backdrop-filter:saturate(200%) blur(44px);
+}
+/* specular shine layer */
+.glass::before,.glass-heavy::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:linear-gradient(145deg,rgba(255,255,255,0.17) 0%,rgba(255,255,255,0.03) 40%,rgba(255,20,20,0.035) 100%);
+}
+/* top edge highlight */
+.glass::after,.glass-heavy::after{
+  content:'';position:absolute;top:0;left:10%;right:10%;height:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.58) 30%,rgba(255,255,255,0.58) 70%,transparent);
+}
+.glass>*,.glass-heavy>*{position:relative;z-index:3;}
+
+/* interactive button glow */
+.glass-btn{
+  transition:background 0.2s,box-shadow 0.2s,transform 0.15s;
+}
+.glass-btn:hover{
+  background:rgba(255,255,255,0.2);
+  box-shadow:0 6px 28px rgba(255,30,30,0.25),inset 0 1px 0 rgba(255,255,255,0.25);
+  transform:translateY(-1px);
+}
+.glass-btn:active{transform:scale(0.96);}
+
+/* ─────────────────────────────────────────────
+   SHELL LAYOUT — DESKTOP (sidebar) / MOBILE (tab bar)
+───────────────────────────────────────────── */
+#app{position:relative;z-index:10;height:100vh;display:flex;flex-direction:column;}
+
+/* DESKTOP: sidebar + main */
+@media(min-width:768px){
+  #app{flex-direction:row;}
+  .tab-bar{display:none!important;}
+  .sidebar{display:flex;}
+  #main-scroll{padding:24px 32px 40px;}
+  .status-bar{display:none;}
+  .desktop-header{display:flex;}
+  /* news grid 3 col */
+  .news-grid{grid-template-columns:repeat(3,1fr)!important;}
+}
+@media(max-width:767px){
+  .sidebar{display:none!important;}
+  .tab-bar{display:flex;}
+  #main-scroll{padding:0 14px 16px;}
+  .desktop-header{display:none;}
+}
+
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  height:100vh;overflow:hidden;
+  display:flex;flex-direction:column;
+  background:rgba(0,0,0,0.3);
+  backdrop-filter:saturate(150%) blur(40px);
+  -webkit-backdrop-filter:saturate(150%) blur(40px);
+  border-right:0.5px solid rgba(255,255,255,0.1);
+  padding:32px 0 20px;
+}
+.sidebar-logo{
+  padding:0 22px 28px;
+  font-size:28px;font-weight:800;letter-spacing:-1px;
+  display:flex;align-items:center;gap:8px;
+}
+.sidebar-logo span{color:var(--red);}
+.sidebar-live{
+  display:flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:700;letter-spacing:0.5px;color:#FF6060;
+}
+.sidebar-nav{flex:1;overflow-y:auto;padding:0 12px;}
+.sidebar-nav::-webkit-scrollbar{display:none;}
+.snav-btn{
+  display:flex;align-items:center;gap:10px;
+  width:100%;padding:10px 12px;border-radius:var(--r-md);
+  background:none;border:none;color:var(--t2);
+  font-size:13px;font-weight:500;letter-spacing:-0.2px;
+  transition:all 0.18s;margin-bottom:2px;
+}
+.snav-btn:hover{background:rgba(255,255,255,0.07);color:var(--t1);}
+.snav-btn.active{background:rgba(255,30,30,0.18);color:var(--t1);font-weight:600;}
+.snav-btn.active .snav-icon{background:rgba(255,30,30,0.3);}
+.snav-icon{
+  width:30px;height:30px;border-radius:8px;
+  background:rgba(255,255,255,0.07);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;transition:background 0.18s;
+}
+.sidebar-round{
+  margin:16px 22px 0;padding:14px;border-radius:var(--r-lg);
+  background:rgba(255,30,30,0.14);border:0.5px solid rgba(255,30,30,0.28);
+}
+.sr-label{font-size:10px;color:rgba(255,100,100,0.7);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;}
+.sr-name{font-size:14px;font-weight:700;letter-spacing:-0.3px;}
+.sr-circuit{font-size:11px;color:var(--t2);margin-top:2px;}
+
+/* DESKTOP HEADER */
+.desktop-header{
+  padding:0 0 20px;
+  align-items:center;justify-content:space-between;
+}
+.dh-title{font-size:38px;font-weight:800;letter-spacing:-1.2px;}
+.dh-title span{color:var(--red);}
+.dh-live{
+  display:flex;align-items:center;gap:7px;padding:8px 18px;
+  border-radius:var(--r-pill);background:rgba(255,30,30,0.18);
+  border:0.5px solid rgba(255,30,30,0.4);
+  font-size:12px;font-weight:700;letter-spacing:0.4px;color:#FF6B6B;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+
+/* STATUS BAR (mobile) */
+.status-bar{
+  flex-shrink:0;padding:14px 22px 6px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:15px;font-weight:600;
+}
+.app-header-mobile{
+  flex-shrink:0;padding:2px 18px 12px;
+  display:flex;align-items:flex-end;justify-content:space-between;
+}
+.app-header-mobile h1{font-size:32px;font-weight:800;letter-spacing:-1.1px;}
+.app-header-mobile h1 span{color:var(--red);}
+
+/* MAIN SCROLL */
+#main-scroll{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
+}
+#main-scroll::-webkit-scrollbar{display:none;}
+
+/* TAB BAR (mobile) */
+.tab-bar{
+  flex-shrink:0;
+  justify-content:space-around;align-items:center;
+  padding:8px 0 28px;
+  background:rgba(0,0,0,0.4);
+  backdrop-filter:saturate(180%) blur(40px);
+  -webkit-backdrop-filter:saturate(180%) blur(40px);
+  border-top:0.5px solid rgba(255,255,255,0.1);
+}
+.tab-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;padding:4px 8px;
+  border-radius:var(--r-md);min-width:46px;transition:opacity 0.15s;
+}
+.tab-btn:hover{opacity:0.8;}
+.tab-icon{
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:background 0.2s;
+}
+.tab-btn.active .tab-icon{background:rgba(255,30,30,0.22);}
+.tab-lbl{font-size:10px;font-weight:500;color:var(--t3);letter-spacing:-0.1px;transition:color 0.2s;}
+.tab-btn.active .tab-lbl{color:var(--red);}
+
+/* ─────────────────────────────────────────────
+   SHARED UI COMPONENTS
+───────────────────────────────────────────── */
+.hidden{display:none!important;}
+.tab-pane{animation:fadeUp 0.28s cubic-bezier(0.34,1.22,0.64,1) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+
+/* section header */
+.sec-hdr{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 10px;}
+.sec-title{font-size:22px;font-weight:700;letter-spacing:-0.7px;}
+.sec-sub{font-size:13px;color:var(--t3);}
+
+/* glass card */
+.card{border-radius:var(--r-xl);overflow:hidden;margin-bottom:14px;}
+
+/* pill */
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:var(--r-pill);
+  font-size:11px;font-weight:700;letter-spacing:0.3px;
+}
+.pill-red{background:rgba(255,30,30,0.2);border:0.5px solid rgba(255,30,30,0.4);color:#FF6B6B;}
+.pill-orange{background:rgba(251,146,60,0.18);border:0.5px solid rgba(251,146,60,0.4);color:var(--orange);}
+.pill-cyan{background:rgba(56,189,248,0.15);border:0.5px solid rgba(56,189,248,0.35);color:var(--cyan);}
+.pill-dim{background:rgba(255,255,255,0.07);border:0.5px solid var(--bdr2);color:var(--t2);}
+
+/* live dot */
+.live-dot{
+  width:6px;height:6px;border-radius:50%;background:#FF3030;
+  box-shadow:0 0 7px rgba(255,48,48,0.9);
+  animation:ldp 1.5s ease-in-out infinite;display:inline-block;
+}
+@keyframes ldp{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.35;transform:scale(0.6);}}
+
+/* stat trio */
+.stat-trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{padding:13px;text-align:center;}
+.stat-lbl{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:5px;}
+.stat-val{font-size:20px;font-weight:700;letter-spacing:-0.5px;line-height:1;}
+.stat-tiny{font-size:11px;color:var(--t2);margin-top:3px;}
+
+/* TABLE */
+.tbl-hdr{display:grid;gap:8px;padding:8px 18px;border-bottom:0.5px solid var(--bdr2);font-size:10px;font-weight:700;color:var(--t3);letter-spacing:0.6px;text-transform:uppercase;}
+.tc-timing{grid-template-columns:32px 14px 1fr 100px 90px 42px;}
+.tc-drv{grid-template-columns:32px 1fr 88px 52px;}
+.tc-con{grid-template-columns:32px 1fr 88px 52px;}
+
+.trow{
+  display:grid;gap:8px;align-items:center;padding:11px 18px;
+  border-bottom:0.5px solid var(--bdr2);cursor:pointer;
+  transition:background 0.12s;position:relative;
+}
+.trow:last-child{border-bottom:none;}
+.trow:hover{background:rgba(255,255,255,0.045);}
+.trow.p1::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;background:linear-gradient(180deg,var(--gold),rgba(255,214,10,0.25));}
+.trow.p2::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;background:linear-gradient(180deg,var(--silver),rgba(200,200,200,0.25));}
+.trow.p3::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;background:linear-gradient(180deg,var(--bronze),rgba(180,110,50,0.25));}
+
+.pnum{font-size:17px;font-weight:700;letter-spacing:-0.5px;color:var(--t3);text-align:center;}
+.pnum.g{color:var(--gold);}  .pnum.s{color:var(--silver);}  .pnum.b{color:var(--bronze);}
+
+.pip{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.drv-name{
+  font-size:14px;font-weight:600;letter-spacing:-0.3px;
+  transition:font-size 0.22s cubic-bezier(0.34,1.56,0.64,1), font-weight 0.18s;
+  display:inline-block;
+}
+.trow:hover .drv-name{font-size:16px;font-weight:700;}
+.drv-sub{font-size:11px;color:var(--t3);margin-top:1px;}
+.gap-c{font-size:13px;font-weight:500;text-align:right;color:var(--t2);font-variant-numeric:tabular-nums;}
+.gap-c.ld{color:var(--gold);}
+.lap-c{font-size:13px;font-weight:500;text-align:right;color:var(--t2);font-variant-numeric:tabular-nums;}
+.lap-c.fx{color:#DA70D6;}
+.pts-c{font-size:16px;font-weight:700;text-align:right;}
+.pts-c.hi{color:var(--red);} .pts-c.lo{color:var(--t3);}
+
+/* pts bar */
+.bar-bg{height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-top:5px;}
+.bar-fg{height:100%;border-radius:2px;transition:width 0.7s cubic-bezier(.34,1.56,.64,1);}
+
+/* ─────────────────────────────────────────────
+   RACE HERO
+───────────────────────────────────────────── */
+.race-hero{padding:22px 20px 20px;margin-bottom:14px;}
+.race-hero h2{font-size:27px;font-weight:800;letter-spacing:-0.9px;line-height:1.1;margin-bottom:4px;}
+.race-circuit{font-size:13px;color:var(--t2);margin-bottom:17px;letter-spacing:-0.1px;}
+.race-foot{display:flex;align-items:center;justify-content:space-between;}
+
+/* ─────────────────────────────────────────────
+   NEWS GRID
+───────────────────────────────────────────── */
+.news-grid{display:grid;gap:12px;grid-template-columns:1fr;margin-bottom:14px;}
+/* desktop: 3 col — set above in @media */
+.news-item{
+  padding:17px 18px;border-radius:var(--r-xl);overflow:hidden;
+  background:var(--g1);border:0.5px solid var(--bdr);
+  box-shadow:0 6px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.12);
+  cursor:pointer;
+  transition:transform 0.2s cubic-bezier(0.34,1.4,0.64,1),
+             box-shadow 0.2s,background 0.15s;
+  position:relative;display:block;color:inherit;text-decoration:none;
+}
+.news-item::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:linear-gradient(145deg,rgba(255,255,255,0.14) 0%,rgba(255,255,255,0.02) 50%);
+}
+.news-item::after{
+  content:'';position:absolute;top:0;left:10%;right:10%;height:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.52) 30%,rgba(255,255,255,0.52) 70%,transparent);
+}
+.news-item>*{position:relative;z-index:3;}
+.news-item:hover{
+  transform:translateY(-4px) scale(1.01);
+  box-shadow:0 16px 44px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.2);
+  background:rgba(255,255,255,0.16);
+}
+.news-item:active{transform:scale(0.975);}
+.ntag{display:inline-block;padding:3px 9px;border-radius:var(--r-pill);font-size:9px;font-weight:700;letter-spacing:0.4px;margin-bottom:9px;}
+.nt-race{background:rgba(255,30,30,0.2);color:#FF7878;border:0.5px solid rgba(255,30,30,0.35);}
+.nt-drv{background:rgba(167,139,250,0.18);color:#C4B5FD;border:0.5px solid rgba(167,139,250,0.35);}
+.nt-tech{background:rgba(56,189,248,0.14);color:var(--cyan);border:0.5px solid rgba(56,189,248,0.3);}
+.nt-reg{background:rgba(251,146,60,0.14);color:var(--orange);border:0.5px solid rgba(251,146,60,0.3);}
+.news-hl{font-size:15px;font-weight:700;letter-spacing:-0.35px;line-height:1.3;margin-bottom:7px;color:var(--t1);}
+.news-ex{font-size:12px;color:var(--t2);line-height:1.55;letter-spacing:-0.15px;}
+.news-meta{margin-top:10px;display:flex;gap:10px;font-size:11px;color:var(--t3);}
+.news-src{color:var(--red);font-weight:600;}
+
+/* ─────────────────────────────────────────────
+   RACE RECAP — collapse/expand cards
+───────────────────────────────────────────── */
+.recap-card{
+  border-radius:var(--r-xl);overflow:hidden;margin-bottom:12px;
+  background:var(--g1);border:0.5px solid var(--bdr);
+  box-shadow:0 6px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.recap-card::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.02) 50%);z-index:1;
+}
+.recap-card>*{position:relative;z-index:2;}
+.recap-trigger{
+  display:flex;align-items:center;gap:14px;padding:16px 18px;
+  cursor:pointer;user-select:none;
+  transition:background 0.15s;
+}
+.recap-trigger:hover{background:rgba(255,255,255,0.04);}
+.recap-flag{font-size:28px;flex-shrink:0;}
+.recap-meta{flex:1;}
+.recap-title-sm{font-size:16px;font-weight:700;letter-spacing:-0.4px;margin-bottom:2px;}
+.recap-date-sm{font-size:11px;color:var(--t2);}
+.recap-chevron{
+  font-size:12px;color:var(--t3);
+  transition:transform 0.3s cubic-bezier(0.34,1.4,0.64,1);
+  flex-shrink:0;
+}
+.recap-card.open .recap-chevron{transform:rotate(180deg);}
+.recap-body{
+  max-height:0;overflow:hidden;
+  transition:max-height 0.45s cubic-bezier(0.34,1.2,0.64,1),
+             padding 0.3s;
+}
+.recap-card.open .recap-body{max-height:600px;}
+.recap-inner{padding:0 18px 18px;}
+.podium-trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+.pod-cell{
+  background:rgba(255,255,255,0.07);border:0.5px solid rgba(255,255,255,0.12);
+  border-radius:var(--r-md);padding:12px 8px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.pod-cell::before{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,0.09),transparent 60%);pointer-events:none;}
+.pod-cell::after{content:'';position:absolute;top:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.38),transparent);}
+.pod-em{font-size:18px;margin-bottom:4px;}
+.pod-nm{font-size:13px;font-weight:700;letter-spacing:-0.3px;}
+.pod-tm{font-size:10px;color:var(--t3);margin-top:2px;}
+.recap-txt{font-size:13px;color:var(--t2);line-height:1.65;letter-spacing:-0.15px;}
+
+/* recap tag */
+.rtag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:9px;font-weight:700;letter-spacing:0.4px;margin-bottom:10px;}
+.rt-race{background:rgba(255,30,30,0.2);color:#FF7878;border:0.5px solid rgba(255,30,30,0.35);}
+.rt-sprint{background:rgba(251,146,60,0.18);color:var(--orange);border:0.5px solid rgba(251,146,60,0.35);}
+
+/* ─────────────────────────────────────────────
+   TRACK DOMINATION
+───────────────────────────────────────────── */
+.cmp-selector{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:8px;margin-bottom:16px;
+}
+.cmp-btn{
+  padding:10px 10px 9px;border-radius:var(--r-md);
+  background:rgba(255,255,255,0.06);border:0.5px solid var(--bdr2);
+  color:var(--t1);text-align:left;
+  transition:all 0.18s cubic-bezier(0.34,1.3,0.64,1);
+}
+.cmp-btn:hover{background:rgba(255,255,255,0.1);transform:translateY(-1px);}
+.cmp-btn.active{background:rgba(255,30,30,0.18);border-color:rgba(255,30,30,0.42);}
+.cmp-flag{font-size:15px;margin-bottom:3px;}
+.cmp-name{font-size:12px;font-weight:700;letter-spacing:-0.25px;}
+.cmp-team{font-size:10px;margin-top:1px;}
+.cmp-pts{font-size:16px;font-weight:800;letter-spacing:-0.5px;margin-top:3px;}
+
+/* comparison panel */
+.cmp-vs-hdr{
+  display:grid;grid-template-columns:1fr 44px 1fr;
+  gap:12px;align-items:center;padding:18px;
+  border-bottom:0.5px solid var(--bdr2);
+}
+.cmp-d-name{font-size:18px;font-weight:800;letter-spacing:-0.5px;}
+.cmp-d-team{font-size:11px;color:var(--t2);margin-top:2px;}
+.cmp-d-pts{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:4px;}
+.cmp-metric-row{
+  display:grid;grid-template-columns:1fr 80px 1fr;
+  padding:10px 18px;gap:8px;border-bottom:0.5px solid var(--bdr2);align-items:center;
+}
+.cmp-metric-row:last-child{border-bottom:none;}
+.cmp-lbl{font-size:9px;font-weight:700;color:var(--t3);text-align:center;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:5px;}
+.cmp-dual-bar{display:flex;height:4px;border-radius:3px;overflow:hidden;gap:1px;}
+.cmp-v-l{font-size:15px;font-weight:700;text-align:right;letter-spacing:-0.3px;}
+.cmp-v-r{font-size:15px;font-weight:700;letter-spacing:-0.3px;}
+
+/* lap chart */
+.lap-chart-wrap{padding:14px 18px;}
+.lap-chart-svg{width:100%;overflow:visible;display:block;}
+
+/* sector times */
+.sector-row{
+  display:grid;grid-template-columns:60px 1fr 1fr 70px;
+  padding:9px 18px;gap:8px;align-items:center;
+  border-bottom:0.5px solid var(--bdr2);
+}
+.sector-row:last-child{border-bottom:none;}
+.sec-lbl{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:0.3px;text-transform:uppercase;}
+.sec-val{font-size:13px;font-weight:500;text-align:right;font-variant-numeric:tabular-nums;color:var(--t2);}
+.sec-val.best{color:#DA70D6;font-weight:700;}
+.sec-delta{font-size:12px;font-weight:700;text-align:right;}
+
+/* ─────────────────────────────────────────────
+   TRACK SVG LAYOUT
+───────────────────────────────────────────── */
+.track-layout-wrap{padding:16px 18px 12px;}
+.track-layout-wrap h4{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:12px;}
+.track-svg{width:100%;max-width:500px;display:block;margin:0 auto;}
+.track-legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;padding:0 2px;}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* ─────────────────────────────────────────────
+   HIGHLIGHTS
+───────────────────────────────────────────── */
+.yr-hdr{font-size:26px;font-weight:800;letter-spacing:-0.9px;color:rgba(255,255,255,0.14);margin:0 0 10px 2px;}
+.hl-card{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px 16px;border-radius:var(--r-xl);margin-bottom:9px;
+  background:var(--g1);border:0.5px solid var(--bdr);
+  box-shadow:0 4px 16px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.1);
+  cursor:pointer;
+  transition:transform 0.2s cubic-bezier(0.34,1.4,0.64,1),
+             box-shadow 0.2s,background 0.15s;
+  text-decoration:none;color:inherit;
+  position:relative;overflow:hidden;
+}
+.hl-card::before{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(145deg,rgba(255,255,255,0.12),transparent 50%);z-index:1;pointer-events:none;}
+.hl-card>*{position:relative;z-index:2;}
+.hl-card:hover{transform:translateX(4px) translateY(-2px);background:rgba(255,255,255,0.13);}
+.hl-thumb{
+  width:72px;height:48px;border-radius:8px;flex-shrink:0;
+  background:rgba(255,255,255,0.06);border:0.5px solid var(--bdr2);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.hl-info{flex:1;}
+.hl-title{font-size:13px;font-weight:700;letter-spacing:-0.3px;line-height:1.3;margin-bottom:4px;}
+.hl-desc{font-size:11px;color:var(--t2);line-height:1.45;letter-spacing:-0.1px;}
+.hl-meta{margin-top:6px;font-size:10px;color:var(--t3);display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+.hl-type{
+  display:inline-block;padding:2px 7px;border-radius:var(--r-pill);
+  font-size:9px;font-weight:700;letter-spacing:0.3px;
+  background:rgba(255,255,255,0.08);color:var(--t2);border:0.5px solid var(--bdr2);
+}
+.hl-link{color:var(--red);font-weight:700;font-size:10px;}
+
+/* ─────────────────────────────────────────────
+   DRIVER STATS POPUP
+───────────────────────────────────────────── */
+.popup-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.65);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  opacity:0;transition:opacity 0.25s;pointer-events:none;
+}
+.popup-overlay.show{opacity:1;pointer-events:all;}
+.popup-box{
+  width:100%;max-width:440px;
+  border-radius:var(--r-xl);overflow:hidden;
+  background:rgba(12,2,18,0.88);
+  backdrop-filter:saturate(200%) blur(40px);
+  -webkit-backdrop-filter:saturate(200%) blur(40px);
+  border:0.5px solid rgba(255,255,255,0.2);
+  box-shadow:0 24px 72px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.18);
+  transform:scale(0.85) translateY(30px);
+  transition:transform 0.38s cubic-bezier(0.34,1.56,0.64,1);
+}
+.popup-overlay.show .popup-box{transform:scale(1) translateY(0);}
+.popup-header{
+  padding:20px 20px 16px;
+  border-bottom:0.5px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.popup-close{
+  background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.15);
+  color:var(--t1);width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;transition:background 0.15s;
+}
+.popup-close:hover{background:rgba(255,255,255,0.2);}
+.popup-stats-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;
+  background:rgba(255,255,255,0.06);
+}
+.popup-stat{
+  padding:16px 12px;text-align:center;
+  background:rgba(0,0,0,0.3);
+}
+.popup-stat-lbl{font-size:10px;font-weight:600;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:5px;}
+.popup-stat-val{font-size:22px;font-weight:800;letter-spacing:-0.7px;line-height:1;}
+.popup-stat-sub{font-size:10px;margin-top:3px;}
+.popup-bio{padding:16px 20px;font-size:13px;color:var(--t2);line-height:1.6;border-top:0.5px solid rgba(255,255,255,0.08);}
+
+/* ─────────────────────────────────────────────
+   CALENDAR
+───────────────────────────────────────────── */
+.cal-row{
+  display:grid;grid-template-columns:24px 28px 1fr auto;
+  padding:12px 18px;gap:10px;
+  border-bottom:0.5px solid var(--bdr2);align-items:center;
+}
+.cal-row:last-child{border-bottom:none;}
+.cal-rn{font-size:12px;font-weight:600;color:var(--t3);text-align:center;}
+.cal-fl{font-size:19px;}
+.cal-nm{font-size:14px;font-weight:600;letter-spacing:-0.3px;}
+.cal-ct{font-size:11px;color:var(--t3);margin-top:1px;}
+.cal-dt{font-size:12px;color:var(--t2);text-align:right;white-space:nowrap;}
+
+/* ─────────────────────────────────────────────
+   WIDGETS TAB
+───────────────────────────────────────────── */
+.wgrid{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;}
+.wgrid::-webkit-scrollbar{display:none;}
+.wshell{
+  flex-shrink:0;border-radius:22px;overflow:hidden;
+  background:rgba(15,2,22,0.78);
+  border:0.5px solid rgba(255,255,255,0.2);
+  box-shadow:0 12px 40px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.2);
+  position:relative;color:white;
+}
+.wshell::before{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(145deg,rgba(255,255,255,0.16) 0%,rgba(255,255,255,0.02) 45%,rgba(255,20,20,0.05) 100%);z-index:1;pointer-events:none;}
+.wshell::after{content:'';position:absolute;top:0;left:12%;right:12%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.65) 35%,rgba(255,255,255,0.65) 65%,transparent);z-index:2;}
+.win{position:relative;z-index:3;padding:14px;width:100%;height:100%;}
+.wsm{width:155px;height:155px;}
+.wmd{width:329px;height:155px;}
+.wlg{width:329px;height:329px;}
+.wf1{font-size:9px;font-weight:800;letter-spacing:2px;color:var(--red);text-transform:uppercase;margin-bottom:6px;}
+.wbig{font-size:24px;font-weight:800;letter-spacing:-0.8px;line-height:1;}
+.wsub{font-size:10px;color:rgba(255,255,255,0.44);margin-top:3px;}
+.wpts{font-size:38px;font-weight:800;letter-spacing:-1.5px;color:var(--red);line-height:1;}
+.wdiv{height:0.5px;background:rgba(255,255,255,0.1);margin:9px 0;}
+.wrow{display:flex;align-items:center;gap:5px;margin-bottom:5px;}
+.wdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.wp{font-size:11px;font-weight:600;color:rgba(255,255,255,0.38);width:16px;}
+.wn{font-size:13px;font-weight:600;flex:1;letter-spacing:-0.2px;}
+.wv{font-size:10px;color:rgba(255,255,255,0.4);}
+
+/* PWA install prompt */
+.pwa-banner{
+  display:none;
+  background:rgba(255,30,30,0.15);border:0.5px solid rgba(255,30,30,0.35);
+  border-radius:var(--r-lg);padding:14px 16px;margin-bottom:14px;
+  align-items:center;gap:12px;
+}
+.pwa-banner.visible{display:flex;}
+.pwa-text{flex:1;font-size:13px;color:var(--t1);}
+.pwa-text strong{display:block;font-size:14px;margin-bottom:2px;}
+.pwa-btn{
+  padding:8px 16px;border-radius:var(--r-pill);
+  background:var(--red);border:none;color:white;
+  font-size:12px;font-weight:700;letter-spacing:0.3px;
+  cursor:pointer;transition:opacity 0.15s;white-space:nowrap;
+}
+.pwa-btn:hover{opacity:0.85;}
+
+@media(max-width:767px){
+  .tc-timing{grid-template-columns:28px 12px 1fr 78px 70px;}
+  .tbl-hdr.tc-timing span:last-child,.trow.tc-timing .pts-c{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg">
+  <div class="orb o1"></div><div class="orb o2"></div>
+  <div class="orb o3"></div><div class="orb o4"></div>
+  <div class="orb o5"></div><div class="orb o6"></div>
+  <div class="orb o-interactive" id="iOrb"></div>
+</div>
+
+<!-- DRIVER POPUP OVERLAY -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup(event)">
+  <div class="popup-box" id="popupBox"></div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app">
+
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      F1 <span>2026</span>
+      <div class="sidebar-live"><span class="live-dot"></span>LIVE</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="snav-btn active" onclick="switchTab('timing',this,true)">
+        <div class="snav-icon">⏱</div>Timing
+      </button>
+      <button class="snav-btn" onclick="switchTab('drivers',this,true)">
+        <div class="snav-icon">🏆</div>Standings
+      </button>
+      <button class="snav-btn" onclick="switchTab('track',this,true)">
+        <div class="snav-icon">📊</div>Track Analysis
+      </button>
+      <button class="snav-btn" onclick="switchTab('recap',this,true)">
+        <div class="snav-icon">🏁</div>Race Recaps
+      </button>
+      <button class="snav-btn" onclick="switchTab('news',this,true)">
+        <div class="snav-icon">📰</div>News
+      </button>
+      <button class="snav-btn" onclick="switchTab('highlights',this,true)">
+        <div class="snav-icon">🎬</div>Moments
+      </button>
+      <button class="snav-btn" onclick="switchTab('widgets',this,true)">
+        <div class="snav-icon">📱</div>Widgets
+      </button>
+    </nav>
+    <div class="sidebar-round">
+      <div class="sr-label">● Round 2 of 24</div>
+      <div class="sr-name">🇨🇳 Chinese GP</div>
+      <div class="sr-circuit">Shanghai · 15 Mar</div>
+    </div>
+  </aside>
+
+  <!-- MOBILE STATUS + HEADER -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+  <div class="status-bar">
+    <span id="clk" style="font-size:17px;font-weight:700;letter-spacing:-0.4px;">9:41</span>
+    <div style="display:flex;gap:5px;align-items:center;">
+      <svg width="16" height="12" viewBox="0 0 17 12" fill="white" opacity="0.85">
+        <path d="M8.5 2.5C10.7 2.5 12.7 3.4 14.1 4.9L15.5 3.4C13.7 1.5 11.2.3 8.5.3 5.8.3 3.3 1.5 1.5 3.4L2.9 4.9C4.3 3.4 6.3 2.5 8.5 2.5Z" opacity="0.4"/>
+        <path d="M8.5 5.5C9.9 5.5 11.2 6.1 12.1 7L13.5 5.5C12.2 4.2 10.4 3.3 8.5 3.3 6.6 3.3 4.8 4.2 3.5 5.5L4.9 7C5.8 6.1 7.1 5.5 8.5 5.5Z"/>
+        <circle cx="8.5" cy="11" r="1.5"/>
+      </svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="white" opacity="0.85">
+        <rect x="0" y="2" width="22" height="9" rx="2.5" fill="none" stroke="white" stroke-width="1" opacity="0.4"/>
+        <rect x="1" y="3" width="17" height="7" rx="1.5" fill="white"/>
+        <rect x="23" y="4.5" width="2" height="4" rx="1" fill="white" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+  <div class="app-header-mobile">
+    <h1>F1 <span>2026</span></h1>
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;background:rgba(255,30,30,0.18);border:0.5px solid rgba(255,30,30,0.4);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);">
+      <span class="live-dot"></span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:0.4px;color:#FF6B6B;">LIVE</span>
+    </div>
+  </div>
+
+  <!-- MAIN SCROLL -->
+  <div id="main-scroll">
+    <!-- pwa install banner -->
+    <div class="pwa-banner" id="pwaBanner">
+      <div class="pwa-text"><strong>Add to Home Screen</strong>Open in full-screen app mode</div>
+      <button class="pwa-btn" onclick="installPWA()">Install</button>
+      <button onclick="document.getElementById('pwaBanner').classList.remove('visible')" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;">×</button>
+    </div>
+
+    <!-- desktop header inside scroll -->
+    <div class="desktop-header">
+      <div class="dh-title">F1 <span>2026</span></div>
+      <div class="dh-live"><span class="live-dot"></span>LIVE DATA</div>
+    </div>
+
+    <!-- ═══ TIMING ═══ -->
+    <div id="tab-timing" class="tab-pane">
+      <div class="glass-heavy race-hero">
+        <div class="pill pill-red" style="margin-bottom:12px;">● ROUND 2 OF 24</div>
+        <h2>Chinese Grand Prix</h2>
+        <div class="race-circuit">Shanghai International Circuit · 15 Mar 2026</div>
+        <div class="race-foot">
+          <div class="pill pill-orange">⚡ SPRINT COMPLETE</div>
+          <span style="font-size:13px;color:var(--t2);">Race · Sun 15 Mar</span>
+        </div>
+      </div>
+
+      <div class="stat-trio">
+        <div class="glass stat-card"><div class="stat-lbl">Leader</div><div class="stat-val" style="font-size:15px;">Russell</div><div class="stat-tiny">1:00:01</div></div>
+        <div class="glass stat-card"><div class="stat-lbl">Fastest</div><div class="stat-val" style="font-size:12px;color:#DA70D6;">1:34.218</div><div class="stat-tiny">Russell ★</div></div>
+        <div class="glass stat-card"><div class="stat-lbl">Laps</div><div class="stat-val">19</div><div class="stat-tiny">Sprint</div></div>
+      </div>
+
+      <div class="glass card">
+        <div class="tbl-hdr tc-timing">
+          <span>P</span><span></span><span>Driver</span>
+          <span style="text-align:right">Gap</span><span style="text-align:right">Best Lap</span><span style="text-align:right">Pts</span>
+        </div>
+        <div class="trow tc-timing p1" onclick="openDriver(0)">
+          <span class="pnum g">1</span>
+          <div class="pip" style="background:#00D2BE;box-shadow:0 0 5px #00D2BE;"></div>
+          <div><div class="drv-name">🇬🇧 G. Russell</div><div class="drv-sub">Mercedes · #63</div></div>
+          <div class="gap-c ld">1:00:01</div><div class="lap-c fx">1:34.218 ★</div><div class="pts-c hi">8</div>
+        </div>
+        <div class="trow tc-timing p2" onclick="openDriver(1)">
+          <span class="pnum s">2</span>
+          <div class="pip" style="background:#DC0000;box-shadow:0 0 5px #DC0000;"></div>
+          <div><div class="drv-name">🇲🇨 C. Leclerc</div><div class="drv-sub">Ferrari · #16</div></div>
+          <div class="gap-c">+0.627</div><div class="lap-c">1:34.891</div><div class="pts-c lo">7</div>
+        </div>
+        <div class="trow tc-timing p3" onclick="openDriver(3)">
+          <span class="pnum b">3</span>
+          <div class="pip" style="background:#DC0000;box-shadow:0 0 5px #DC0000;"></div>
+          <div><div class="drv-name">🇬🇧 L. Hamilton</div><div class="drv-sub">Ferrari · #44</div></div>
+          <div class="gap-c">+1.104</div><div class="lap-c">1:35.043</div><div class="pts-c lo">6</div>
+        </div>
+        <div class="trow tc-timing" onclick="openDriver(2)">
+          <span class="pnum">4</span>
+          <div class="pip" style="background:#00D2BE;box-shadow:0 0 5px #00D2BE;"></div>
+          <div><div class="drv-name">🇮🇹 K. Antonelli</div><div class="drv-sub">Mercedes · #12 <span style="color:var(--orange);font-size:10px;">+10s pen</span></div></div>
+          <div class="gap-c">+8.341</div><div class="lap-c">1:35.189</div><div class="pts-c lo">5</div>
+        </div>
+        <div class="trow tc-timing" onclick="openDriver(4)">
+          <span class="pnum">5</span>
+          <div class="pip" style="background:#FF8000;box-shadow:0 0 5px #FF8000;"></div>
+          <div><div class="drv-name">🇬🇧 L. Norris</div><div class="drv-sub">McLaren · #4</div></div>
+          <div class="gap-c">+10.882</div><div class="lap-c">1:35.422</div><div class="pts-c lo">4</div>
+        </div>
+        <div class="trow tc-timing" onclick="openDriver(5)">
+          <span class="pnum">6</span>
+          <div class="pip" style="background:#3671C6;box-shadow:0 0 5px #3671C6;"></div>
+          <div><div class="drv-name">🇳🇱 M. Verstappen</div><div class="drv-sub">Red Bull · #1</div></div>
+          <div class="gap-c">+14.003</div><div class="lap-c">1:35.698</div><div class="pts-c lo">3</div>
+        </div>
+        <div class="trow tc-timing" onclick="openDriver(7)">
+          <span class="pnum">7</span>
+          <div class="pip" style="background:#358C75;box-shadow:0 0 5px #358C75;"></div>
+          <div><div class="drv-name">🇬🇧 O. Bearman</div><div class="drv-sub">Haas · #87</div></div>
+          <div class="gap-c">+21.541</div><div class="lap-c">1:36.112</div><div class="pts-c lo">2</div>
+        </div>
+        <div class="trow tc-timing" onclick="openDriver(8)">
+          <span class="pnum">8</span>
+          <div class="pip" style="background:#5E8FAA;box-shadow:0 0 5px #5E8FAA;"></div>
+          <div><div class="drv-name">🇬🇧 A. Lindblad</div><div class="drv-sub">VCARB · #6</div></div>
+          <div class="gap-c">+24.773</div><div class="lap-c">1:36.394</div><div class="pts-c lo">1</div>
+        </div>
+        <div class="trow tc-timing" onclick="openDriver(10)">
+          <span class="pnum">9</span>
+          <div class="pip" style="background:#52E252;box-shadow:0 0 5px #52E252;"></div>
+          <div><div class="drv-name">🇧🇷 G. Bortoleto</div><div class="drv-sub">Audi · #5</div></div>
+          <div class="gap-c">+27.123</div><div class="lap-c">1:36.651</div><div class="pts-c lo">—</div>
+        </div>
+        <div class="trow tc-timing" onclick="openDriver(11)">
+          <span class="pnum">10</span>
+          <div class="pip" style="background:#358C75;box-shadow:0 0 5px #358C75;"></div>
+          <div><div class="drv-name">🇫🇷 E. Ocon</div><div class="drv-sub">Haas · #31</div></div>
+          <div class="gap-c">+28.990</div><div class="lap-c">1:36.889</div><div class="pts-c lo">—</div>
+        </div>
+      </div>
+
+      <div class="sec-hdr"><span class="sec-title">Next Race</span></div>
+      <div class="glass-heavy" style="padding:18px 20px;margin-bottom:14px;display:flex;align-items:center;gap:16px;">
+        <div style="font-size:34px;">🇯🇵</div>
+        <div style="flex:1;"><div style="font-size:19px;font-weight:800;letter-spacing:-0.6px;margin-bottom:3px;">Japanese Grand Prix</div>
+        <div style="font-size:12px;color:var(--t2);">Suzuka · Round 3 · Mar 27–29</div></div>
+        <div class="pill pill-cyan">13 days</div>
+      </div>
+
+      <div class="sec-hdr"><span class="sec-title">2026 Calendar</span></div>
+      <div class="glass card"><div id="cal-rows"></div></div>
+    </div>
+
+    <!-- ═══ DRIVERS / CONSTRUCTORS ═══ -->
+    <div id="tab-drivers" class="tab-pane hidden">
+      <div class="sec-hdr"><span class="sec-title">Drivers Championship</span><span class="sec-sub">Rnd 2 Sprint</span></div>
+      <div class="glass card">
+        <div class="tbl-hdr tc-drv"><span>P</span><span>Driver</span><span></span><span style="text-align:right">Pts</span></div>
+        <div id="drv-rows"></div>
+      </div>
+      <div class="sec-hdr"><span class="sec-title">Constructors</span><span class="sec-sub">Rnd 2 Sprint</span></div>
+      <div class="glass card">
+        <div class="tbl-hdr tc-con"><span>P</span><span>Team</span><span></span><span style="text-align:right">Pts</span></div>
+        <div id="cns-rows"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TRACK DOMINATION ═══ -->
+    <div id="tab-track" class="tab-pane hidden">
+      <div class="sec-hdr"><span class="sec-title">Track Analysis</span><span class="sec-sub">Select 2 drivers</span></div>
+      <div class="glass card" style="padding:16px 18px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:10px;">Compare drivers — select two</div>
+        <div class="cmp-selector" id="cmpSelector"></div>
+      </div>
+      <div id="comparePanel"></div>
+    </div>
+
+    <!-- ═══ RECAP ═══ -->
+    <div id="tab-recap" class="tab-pane hidden">
+      <div class="sec-hdr"><span class="sec-title">Race Recaps</span><span class="sec-sub">Click to expand</span></div>
+      <div id="recap-list"></div>
+    </div>
+
+    <!-- ═══ NEWS ═══ -->
+    <div id="tab-news" class="tab-pane hidden">
+      <div class="sec-hdr"><span class="sec-title">Latest News</span></div>
+      <div class="news-grid" id="news-items"></div>
+    </div>
+
+    <!-- ═══ HIGHLIGHTS ═══ -->
+    <div id="tab-highlights" class="tab-pane hidden">
+      <div class="sec-hdr"><span class="sec-title">Greatest Moments</span><span class="sec-sub">All seasons</span></div>
+      <div id="highlights-list"></div>
+    </div>
+
+    <!-- ═══ WIDGETS ═══ -->
+    <div id="tab-widgets" class="tab-pane hidden">
+      <div class="sec-hdr"><span class="sec-title">Widgets</span><span class="sec-sub">iOS 26 · Android</span></div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:9px;">Small (2×2)</div>
+      <div class="wgrid" style="margin-bottom:20px;">
+        <div class="wshell wsm"><div class="win">
+          <div class="wf1">F1 Live</div><div style="font-size:26px;margin:2px 0;">🇨🇳</div>
+          <div style="font-size:14px;font-weight:800;letter-spacing:-0.4px;line-height:1.2;">Chinese<br>Grand Prix</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:4px;">Sun 15 Mar</div>
+          <div style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;">TOMORROW</div>
+        </div></div>
+        <div class="wshell wsm"><div class="win">
+          <div class="wf1">Championship</div><div class="wbig">Russell</div>
+          <div class="wsub">Mercedes · P1</div><div class="wpts">33</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.35);">points</div>
+        </div></div>
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:9px;">Medium (4×2)</div>
+      <div class="wgrid" style="margin-bottom:20px;">
+        <div class="wshell wmd"><div class="win" style="display:flex;gap:12px;">
+          <div style="flex:1;">
+            <div class="wf1">Championship</div><div class="wbig">Russell</div>
+            <div class="wsub">33 pts · P1</div>
+            <div style="margin-top:10px;">
+              <div style="font-size:9px;color:rgba(255,255,255,0.32);font-weight:700;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:4px;">Top 3</div>
+              <div class="wrow"><span class="wp">2</span><span class="wdot" style="background:#DC0000;"></span><span class="wn" style="font-size:11px;">Leclerc</span><span class="wv">22</span></div>
+              <div class="wrow"><span class="wp">3</span><span class="wdot" style="background:#00D2BE;"></span><span class="wn" style="font-size:11px;">Antonelli</span><span class="wv">22</span></div>
+            </div>
+          </div>
+          <div style="text-align:right;display:flex;flex-direction:column;">
+            <div style="font-size:24px;">🇨🇳</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.32);font-weight:700;letter-spacing:0.4px;text-transform:uppercase;margin-top:auto;">Next</div>
+            <div style="font-size:13px;font-weight:800;">CHINA</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.32);">15 Mar</div>
+          </div>
+        </div></div>
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:9px;">Large (4×4)</div>
+      <div class="wgrid">
+        <div class="wshell wlg"><div class="win">
+          <div class="wf1" style="margin-bottom:8px;">F1 2026 · Sprint Result</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <div style="font-size:18px;">🇨🇳</div>
+            <div><div style="font-size:14px;font-weight:800;letter-spacing:-0.4px;">Chinese GP Sprint</div><div style="font-size:10px;color:rgba(255,255,255,0.38);">Sat 14 Mar 2026</div></div>
+          </div>
+          <div class="wdiv"></div>
+          <div class="wrow" style="margin-bottom:8px;"><span style="font-size:14px;width:20px;">🥇</span><span class="wdot" style="background:#00D2BE;width:8px;height:8px;"></span><span style="font-size:14px;font-weight:800;flex:1;">RUSSELL</span><span style="font-size:10px;color:rgba(255,255,255,0.44);">1:00:01</span></div>
+          <div class="wrow" style="margin-bottom:8px;"><span style="font-size:14px;width:20px;">🥈</span><span class="wdot" style="background:#DC0000;width:8px;height:8px;"></span><span style="font-size:14px;font-weight:800;flex:1;">LECLERC</span><span style="font-size:10px;color:rgba(255,255,255,0.44);">+0.627</span></div>
+          <div class="wrow" style="margin-bottom:12px;"><span style="font-size:14px;width:20px;">🥉</span><span class="wdot" style="background:#DC0000;width:8px;height:8px;"></span><span style="font-size:14px;font-weight:800;flex:1;">HAMILTON</span><span style="font-size:10px;color:rgba(255,255,255,0.44);">+1.104</span></div>
+          <div class="wdiv"></div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.32);font-weight:700;letter-spacing:0.7px;text-transform:uppercase;margin-bottom:7px;">Championship Leader</div>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <div class="wdot" style="background:#00D2BE;width:8px;height:8px;box-shadow:0 0 6px rgba(0,210,190,0.7);"></div>
+            <div style="flex:1;"><div style="font-size:17px;font-weight:800;letter-spacing:-0.5px;">G. Russell</div><div style="font-size:10px;color:rgba(255,255,255,0.38);">Mercedes · 33 pts</div></div>
+            <div style="font-size:24px;font-weight:800;color:var(--red);">P1</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+  </div><!-- /main-scroll -->
+
+  <!-- TAB BAR (mobile) -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('timing',this,false)"><div class="tab-icon">⏱</div><span class="tab-lbl">Timing</span></button>
+    <button class="tab-btn" onclick="switchTab('drivers',this,false)"><div class="tab-icon">🏆</div><span class="tab-lbl">Standings</span></button>
+    <button class="tab-btn" onclick="switchTab('track',this,false)"><div class="tab-icon">📊</div><span class="tab-lbl">Analysis</span></button>
+    <button class="tab-btn" onclick="switchTab('recap',this,false)"><div class="tab-icon">🏁</div><span class="tab-lbl">Recaps</span></button>
+    <button class="tab-btn" onclick="switchTab('news',this,false)"><div class="tab-icon">📰</div><span class="tab-lbl">News</span></button>
+    <button class="tab-btn" onclick="switchTab('highlights',this,false)"><div class="tab-icon">🎬</div><span class="tab-lbl">Moments</span></button>
+    <button class="tab-btn" onclick="switchTab('widgets',this,false)"><div class="tab-icon">📱</div><span class="tab-lbl">Widgets</span></button>
+  </nav>
+
+  </div><!-- /main column -->
+</div><!-- /app -->
+
+<script>
+/* ─────────────────────────────────────────────
+   DATA
+───────────────────────────────────────────── */
+const drivers=[
+  {pos:1,name:'G. Russell',  short:'Russell',   flag:'🇬🇧',team:'Mercedes',    color:'#00D2BE',color2:'#00A090',pts:33,wins:2,poles:2,fl:2,races:2,avgPos:1.0,
+   bio:'George Russell has dominated the opening rounds of the 2026 season, winning both the Australian GP and the Chinese GP sprint. His mastery of the new 2026 regulations has pushed Mercedes back to the front of the grid.',
+   sectors:{s1:'28.341',s2:'34.218',s3:'31.659'},lapTimes:[93.2,93.5,93.1,92.9,93.3,93.0,92.8,93.2,93.6,93.0,92.9,93.1,93.4,93.8,93.2,92.9,93.1,93.0,92.8]},
+  {pos:2,name:'C. Leclerc',  short:'Leclerc',   flag:'🇲🇨',team:'Ferrari',     color:'#DC0000',color2:'#AA0000',pts:22,wins:0,poles:0,fl:0,races:2,avgPos:2.5,
+   bio:"Charles Leclerc has been Ferrari's strongest performer in the new era, consistently finding himself on the podium. His qualifying pace is exceptional under the 2026 aero rules.",
+   sectors:{s1:'28.102',s2:'34.889',s3:'31.900'},lapTimes:[93.9,94.2,93.8,93.6,94.0,93.7,93.5,94.1,94.3,93.7,93.8,94.0,94.2,94.6,93.9,93.6,93.8,93.7,93.5]},
+  {pos:3,name:'K. Antonelli',short:'Antonelli', flag:'🇮🇹',team:'Mercedes',    color:'#00D2BE',color2:'#007A6E',pts:22,wins:0,poles:1,fl:0,races:2,avgPos:2.5,
+   bio:"Kimi Antonelli, 18, became the youngest-ever F1 pole-sitter at the Chinese GP. Mercedes' teenage sensation has proved he belongs at the very top of the sport from his first race weekend.",
+   sectors:{s1:'28.450',s2:'34.560',s3:'31.780'},lapTimes:[94.1,94.3,94.0,93.8,94.2,93.9,93.7,94.2,94.5,93.9,94.0,94.2,94.4,94.8,94.1,93.8,94.0,93.9,93.7]},
+  {pos:4,name:'L. Hamilton',  short:'Hamilton',  flag:'🇬🇧',team:'Ferrari',     color:'#DC0000',color2:'#AA0000',pts:18,wins:0,poles:0,fl:0,races:2,avgPos:3.5,
+   bio:'Lewis Hamilton began life at Ferrari with a podium at the Australian GP. Still one of the quickest drivers in the paddock at 40, Hamilton is adapting to the Scuderia machinery rapidly.',
+   sectors:{s1:'28.520',s2:'34.700',s3:'31.820'},lapTimes:[94.3,94.6,94.2,94.0,94.4,94.1,93.9,94.4,94.7,94.1,94.2,94.4,94.6,95.0,94.3,94.0,94.2,94.1,93.9]},
+  {pos:5,name:'L. Norris',    short:'Norris',    flag:'🇬🇧',team:'McLaren',     color:'#FF8000',color2:'#CC6600',pts:14,wins:0,poles:0,fl:0,races:2,avgPos:5.0,
+   bio:'Reigning world champion Lando Norris is facing a tough start to his title defence. McLaren are competitive but behind the pace of Mercedes and Ferrari in the opening rounds.',
+   sectors:{s1:'28.700',s2:'34.900',s3:'32.000'},lapTimes:[94.5,94.8,94.4,94.2,94.6,94.3,94.1,94.6,94.9,94.3,94.4,94.6,94.8,95.2,94.5,94.2,94.4,94.3,94.1]},
+  {pos:6,name:'M. Verstappen',short:'Verstappen',flag:'🇳🇱',team:'Red Bull',    color:'#3671C6',color2:'#1E4A99',pts:11,wins:0,poles:0,fl:0,races:2,avgPos:5.5,
+   bio:'Four-time champion Max Verstappen is struggling with the 2026 Red Bull. The Dutch driver has been openly critical of the car, with Ford\'s new power unit integration presenting significant challenges.',
+   sectors:{s1:'28.900',s2:'35.100',s3:'32.150'},lapTimes:[95.1,95.4,95.0,94.8,95.2,94.9,94.7,95.2,95.5,94.9,95.0,95.2,95.4,95.8,95.1,94.8,95.0,94.9,94.7]},
+  {pos:7,name:'O. Piastri',   short:'Piastri',   flag:'🇦🇺',team:'McLaren',     color:'#FF8000',color2:'#CC6600',pts:10,wins:0,poles:0,fl:0,races:2,avgPos:7.0,
+   bio:'Oscar Piastri had the worst possible start to 2026, crashing before the lights went out at his home race in Melbourne. He recovered in China to take points.',
+   sectors:{s1:'28.800',s2:'35.000',s3:'32.080'},lapTimes:[94.7,95.0,94.6,94.4,94.8,94.5,94.3,94.8,95.1,94.5,94.6,94.8,95.0,95.4,94.7,94.4,94.6,94.5,94.3]},
+  {pos:8,name:'O. Bearman',   short:'Bearman',   flag:'🇬🇧',team:'Haas',        color:'#358C75',color2:'#205A4B',pts:8, wins:0,poles:0,fl:0,races:2,avgPos:6.5,
+   bio:'Oliver Bearman has been a revelation at Haas, outperforming expectations at both Melbourne and Shanghai. His car control and tyre management have impressed the entire paddock.',
+   sectors:{s1:'29.100',s2:'35.300',s3:'32.400'},lapTimes:[95.7,96.0,95.6,95.4,95.8,95.5,95.3,95.8,96.1,95.5,95.6,95.8,96.0,96.4,95.7,95.4,95.6,95.5,95.3]},
+  {pos:9,name:'A. Lindblad',  short:'Lindblad',  flag:'🇬🇧',team:'VCARB',       color:'#5E8FAA',color2:'#3A6880',pts:7, wins:0,poles:0,fl:0,races:2,avgPos:8.0,
+   bio:'Arvid Lindblad became the latest British driver to make a successful F1 debut, scoring points on his very first start in Melbourne and following up with another strong result in China.',
+   sectors:{s1:'29.200',s2:'35.450',s3:'32.550'},lapTimes:[95.9,96.2,95.8,95.6,96.0,95.7,95.5,96.0,96.3,95.7,95.8,96.0,96.2,96.6,95.9,95.6,95.8,95.7,95.5]},
+  {pos:9,name:'P. Gasly',     short:'Gasly',     flag:'🇫🇷',team:'Alpine',       color:'#0093CC',color2:'#006B99',pts:4, wins:0,poles:0,fl:0,races:2,avgPos:10.5,
+   bio:'Pierre Gasly continues to be Alpine\'s most consistent performer, extracting the maximum from the 2026 Alpine in difficult circumstances.',
+   sectors:{s1:'29.400',s2:'35.650',s3:'32.750'},lapTimes:[96.3,96.6,96.2,96.0,96.4,96.1,95.9,96.4,96.7,96.1,96.2,96.4,96.6,97.0,96.3,96.0,96.2,96.1,95.9]},
+  {pos:11,name:'G. Bortoleto',short:'Bortoleto', flag:'🇧🇷',team:'Audi',         color:'#52E252',color2:'#2CB02C',pts:3, wins:0,poles:0,fl:0,races:2,avgPos:11.0,
+   bio:'Gabriel Bortoleto scored Audi\'s first-ever Formula 1 constructor points in Melbourne and has impressed with his mature approach to the challenging 2026 regulations.',
+   sectors:{s1:'29.600',s2:'35.850',s3:'32.900'},lapTimes:[96.7,97.0,96.6,96.4,96.8,96.5,96.3,96.8,97.1,96.5,96.6,96.8,97.0,97.4,96.7,96.4,96.6,96.5,96.3]},
+  {pos:12,name:'E. Ocon',     short:'Ocon',      flag:'🇫🇷',team:'Haas',         color:'#358C75',color2:'#205A4B',pts:2, wins:0,poles:0,fl:0,races:2,avgPos:12.0,
+   bio:'Esteban Ocon joined Haas for 2026 and has been steadily adding points in the early rounds. His experience is proving valuable as the team develops their new car.',
+   sectors:{s1:'29.800',s2:'36.000',s3:'33.100'},lapTimes:[97.1,97.4,97.0,96.8,97.2,96.9,96.7,97.2,97.5,96.9,97.0,97.2,97.4,97.8,97.1,96.8,97.0,96.9,96.7]},
+];
+
+const constructors=[
+  {pos:1,name:'Mercedes',    color:'#00D2BE',drivers:'Russell / Antonelli',pts:55,wins:2},
+  {pos:2,name:'Ferrari',     color:'#DC0000',drivers:'Leclerc / Hamilton', pts:40,wins:0},
+  {pos:3,name:'McLaren',     color:'#FF8000',drivers:'Norris / Piastri',   pts:24,wins:0},
+  {pos:4,name:'Red Bull',    color:'#3671C6',drivers:'Verstappen / Tsunoda',pts:11,wins:0},
+  {pos:5,name:'Haas',        color:'#358C75',drivers:'Bearman / Ocon',     pts:10,wins:0},
+  {pos:6,name:'VCARB',       color:'#5E8FAA',drivers:'Lindblad / Hadjar',  pts:8, wins:0},
+  {pos:7,name:'Alpine',      color:'#0093CC',drivers:'Gasly / Doohan',     pts:4, wins:0},
+  {pos:8,name:'Audi',        color:'#52E252',drivers:'Bortoleto / Hülkenberg',pts:3,wins:0},
+  {pos:9,name:'Williams',    color:'#64C4FF',drivers:'Albon / Sainz',      pts:0, wins:0},
+  {pos:10,name:'Aston Martin',color:'#006F62',drivers:'Alonso / Stroll',   pts:0, wins:0},
+];
+
+const news=[
+  {tag:'race',label:'Sprint',hl:'Antonelli youngest-ever pole-sitter; Russell wins sprint',ex:"Mercedes' Kimi Antonelli, 18, became F1's youngest pole-sitter for Sunday's Chinese GP while Russell claimed the sprint victory.",time:'2h ago',reads:'18.2k',url:'https://www.planetf1.com/'},
+  {tag:'race',label:'Race',hl:'Russell wins Chinese GP sprint; extends championship lead',ex:'George Russell dominated the Chinese sprint to extend his 2026 championship lead to 11 points over Leclerc and Antonelli.',time:'4h ago',reads:'14.7k',url:'https://www.planetf1.com/'},
+  {tag:'driver',label:'Driver',hl:'Ferrari park controversial inverted rear wing after Hamilton criticism',ex:'Ferrari ditched their radical upside-down rear wing concept after Lewis Hamilton described the debut as "premature."',time:'1d ago',reads:'22.3k',url:'https://www.the-race.com/formula-1/australian-grand-prix-2026-f1-race-results/'},
+  {tag:'tech',label:'Tech',hl:'How 2026 Active Aero is reshaping qualifying strategy',ex:'The 2026 Manual Override Mode is creating unprecedented tactical variety — energy deployment now matters more than raw downforce.',time:'2d ago',reads:'31.1k',url:'https://racingnewstoday.com/formula-1-race-results-2026/'},
+  {tag:'driver',label:'Driver',hl:'Verstappen: Red Bull not where we should be',ex:"Four-time champion Max Verstappen is openly critical of the 2026 Red Bull amid Ford's power unit integration challenges.",time:'4h ago',reads:'19.8k',url:'https://www.motorsport.com/f1/news/'},
+  {tag:'race',label:'News',hl:"Piastri: Mercedes' straight-line speed is 'impressive'",ex:"McLaren's Oscar Piastri admitted Mercedes have a genuine straight-line advantage from their new power unit architecture.",time:'6h ago',reads:'11.4k',url:'https://www.motorsport.com/f1/news/'},
+  {tag:'regulation',label:'Reg',hl:'2026 rules verdict: The paddock speaks',ex:'Drivers are divided on the new 2026 regulations — most love the closer racing but question the Active Aero complexity.',time:'3d ago',reads:'28.7k',url:'https://www.formula1.com/en/results/2026/races'},
+  {tag:'race',label:'F1',hl:'Full Australian GP results: Russell leads from lap one',ex:'Complete race results from the 2026 season opener at Albert Park where Mercedes claimed a dominant 1-2 finish.',time:'1w ago',reads:'44.3k',url:'https://www.the-race.com/formula-1/australian-grand-prix-2026-f1-race-results/'},
+  {tag:'tech',label:'Tech',hl:"Mercedes' 2026 power unit explained: why it's a leap forward",ex:"The Silver Arrows' new W16 power unit is generating more electrical energy than any previous F1 hybrid, giving them a crucial advantage.",time:'5d ago',reads:'36.1k',url:'https://www.motorsport.com/f1/news/'},
+];
+
+const recaps=[
+  {flag:'🇨🇳',title:'Chinese GP Sprint',sub:'Sat 14 March 2026 · Round 2',tag:'sprint',
+   p1:{name:'Russell',team:'Mercedes'},p2:{name:'Leclerc',team:'Ferrari'},p3:{name:'Hamilton',team:'Ferrari'},
+   txt:'George Russell extended his championship lead to 11 points after a commanding sprint victory at Shanghai. Starting from pole, Russell engaged in an early duel with Hamilton before breaking clear on lap 7. A safety car on lap 14 — triggered by Hülkenberg\'s stricken Audi — briefly closed the field, but Russell managed the restart to perfection to win by 0.6s. Antonelli took a 10-second penalty for contact with Hadjar. Ferrari\'s Hamilton and Leclerc completed the podium to keep the Scuderia in strong contention for both titles.'},
+  {flag:'🇦🇺',title:'Australian Grand Prix',sub:'Sun 8 March 2026 · Round 1',tag:'race',
+   p1:{name:'Russell',team:'Mercedes'},p2:{name:'Antonelli',team:'Mercedes'},p3:{name:'Leclerc',team:'Ferrari'},
+   txt:'The first race of the 2026 regulation era saw Mercedes dominate from the first lap at Albert Park. Russell led wire-to-wire as the sweeping new aero and power unit regulations reshuffled the grid hierarchy dramatically. McLaren\'s Piastri crashed on the formation lap — a devastating blow for the home hero and reigning champion. Verstappen struggled to fifth as Red Bull grappled with Ford\'s new hybrid architecture. Rookie Lindblad scored points on debut (P8) for VCARB. Audi scored their first-ever constructor points through Bortoleto in P9. Seven cars failed to finish in a chaotic season opener.'},
+];
+
+const calendar=[
+  {rnd:1,flag:'🇦🇺',name:'Australian GP',circuit:'Albert Park',date:'8 Mar',status:'done'},
+  {rnd:2,flag:'🇨🇳',name:'Chinese GP',circuit:'Shanghai',date:'15 Mar',status:'live'},
+  {rnd:3,flag:'🇯🇵',name:'Japanese GP',circuit:'Suzuka',date:'29 Mar',status:'upcoming'},
+  {rnd:4,flag:'🇧🇭',name:'Bahrain GP',circuit:'Sakhir',date:'12 Apr',status:'upcoming'},
+  {rnd:5,flag:'🇸🇦',name:'Saudi Arabian GP',circuit:'Jeddah',date:'26 Apr',status:'upcoming'},
+  {rnd:6,flag:'🇺🇸',name:'Miami GP',circuit:'Miami',date:'10 May',status:'upcoming'},
+  {rnd:7,flag:'🇨🇦',name:'Canadian GP',circuit:'Montréal',date:'7 Jun',status:'upcoming'},
+  {rnd:8,flag:'🇲🇨',name:'Monaco GP',circuit:'Monte Carlo',date:'21 Jun',status:'upcoming'},
+];
+
+const highlights=[
+  {year:2026,type:'Record',em:'⭐',title:"Antonelli becomes youngest F1 pole-sitter ever",desc:"Kimi Antonelli, 18, set the fastest lap in Chinese GP qualifying to become the youngest driver to take a Formula 1 pole position, beating Verstappen's 2015 record.",gp:'🇨🇳 Chinese GP',url:'https://www.planetf1.com/'},
+  {year:2026,type:'Race',em:'🏎️',title:'Russell dominant in 2026 season opener',desc:'George Russell led every lap at Albert Park in the first race under sweeping 2026 regulations, with Mercedes claiming a stunning 1-2 finish.',gp:'🇦🇺 Australian GP',url:'https://www.the-race.com/formula-1/australian-grand-prix-2026-f1-race-results/'},
+  {year:2025,type:'Title',em:'🏆',title:'Norris wins 2025 World Championship',desc:"Lando Norris secured the 2025 Drivers' Championship after a season-long battle with Verstappen, giving McLaren their first title since 2008.",gp:'🏆 Season 2025',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:2025,type:'Race',em:'🏎️',title:"Hamilton's final win for Mercedes",desc:'Lewis Hamilton signed off from Mercedes with a commanding victory at the 2024 Abu Dhabi GP before his historic move to Ferrari.',gp:'🇦🇪 Abu Dhabi GP',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:2024,type:'Title',em:'🏆',title:"Verstappen's fourth consecutive title",desc:'Max Verstappen secured his fourth consecutive World Championship at Las Vegas, cementing his legacy as one of the all-time greats.',gp:'🇺🇸 Las Vegas GP',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:2024,type:'Race',em:'🎯',title:"Norris wins his first F1 race",desc:'Lando Norris ended his long wait for a breakthrough win at Zandvoort, beating Verstappen at his home race in one of 2024\'s most dramatic moments.',gp:'🇳🇱 Dutch GP',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:2023,type:'Record',em:'📊',title:"Verstappen's record 15 victories in one season",desc:"Max Verstappen shattered Sebastian Vettel's 2013 record with his 15th win of 2023, in a season of unprecedented Red Bull domination.",gp:'🏆 Season 2023',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:2021,type:'Drama',em:'🔥',title:"Abu Dhabi 2021 — the most controversial finale",desc:'Max Verstappen won his first title on the final lap of the season in circumstances that changed F1 governance forever.',gp:'🇦🇪 Abu Dhabi GP',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:2019,type:'Drive',em:'💎',title:"Hamilton's iconic German GP fightback from P9",desc:'Lewis Hamilton delivered arguably his greatest drive at Hockenheim, climbing from ninth to claim an extraordinary victory.',gp:'🇩🇪 German GP',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:2008,type:'Drama',em:'🔥',title:"Hamilton wins title on the final corner",desc:"Lewis Hamilton secured his first World Championship on the very last corner of the Brazilian GP, overtaking Timo Glock in a heart-stopping finale.",gp:'🇧🇷 Brazilian GP',url:'https://www.formula1.com/en/results/2026/races'},
+  {year:1994,type:'Drama',em:'🔥',title:"Schumacher vs Hill — Adelaide showdown",desc:"Michael Schumacher's first championship was decided when he and Damon Hill collided in the title-deciding Australian Grand Prix.",gp:'🇦🇺 Australian GP',url:'https://www.formula1.com/en/results/2026/races'},
+];
+
+const ntc={race:'nt-race',driver:'nt-drv',tech:'nt-tech',regulation:'nt-reg'};
+function pc(i){return i===0?'g':i===1?'s':i===2?'b':'';}
+
+/* ─────────────────────────────────────────────
+   CLOCK
+───────────────────────────────────────────── */
+function tick(){const n=new Date(),h=n.getHours(),m=n.getMinutes();document.getElementById('clk').textContent=`${h%12||12}:${String(m).padStart(2,'0')}`;}
+tick();setInterval(tick,15000);
+
+/* ─────────────────────────────────────────────
+   INTERACTIVE LIGHT ORB
+───────────────────────────────────────────── */
+const iOrb=document.getElementById('iOrb');
+document.querySelectorAll('.glass-btn,.snav-btn,.cmp-btn,.tab-btn,.tab-icon,.snav-icon').forEach(el=>{
+  el.addEventListener('mouseenter',e=>{
+    const r=el.getBoundingClientRect();
+    const cx=r.left+r.width/2, cy=r.top+r.height/2;
+    iOrb.style.left=cx+'px'; iOrb.style.top=cy+'px';
+    iOrb.style.opacity='1';
+  });
+  el.addEventListener('mouseleave',()=>{iOrb.style.opacity='0';});
+});
+document.addEventListener('mousemove',e=>{
+  if(iOrb.style.opacity==='1'){
+    iOrb.style.left=e.clientX+'px'; iOrb.style.top=e.clientY+'px';
+  }
+});
+
+/* ─────────────────────────────────────────────
+   RENDER FUNCTIONS
+───────────────────────────────────────────── */
+function renderDrivers(){
+  const mx=drivers[0].pts;
+  document.getElementById('drv-rows').innerHTML=drivers.map((d,i)=>`
+    <div class="trow tc-drv ${i<3?'p'+(i+1):''}" onclick="openDriver(${i})" style="cursor:pointer;">
+      <span class="pnum ${pc(i)}">${d.pos}</span>
+      <div>
+        <div class="drv-name" style="display:flex;align-items:center;gap:7px;">
+          <span style="width:10px;height:10px;border-radius:50%;background:${d.color};box-shadow:0 0 5px ${d.color};display:inline-block;flex-shrink:0;"></span>
+          ${d.flag} ${d.name}
+        </div>
+        <div class="drv-sub">${d.team}${d.wins>0?' · '+d.wins+' win':''}</div>
+        <div class="bar-bg"><div class="bar-fg" style="background:${d.color};width:${d.pts>0?Math.round(d.pts/mx*100):2}%;"></div></div>
+      </div>
+      <div></div>
+      <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;text-align:right;">${d.pts}</div>
+    </div>`).join('');
+}
+
+function renderConstructors(){
+  const mx=constructors[0].pts;
+  document.getElementById('cns-rows').innerHTML=constructors.map((c,i)=>`
+    <div class="trow tc-con ${i<3?'p'+(i+1):''}">
+      <span class="pnum ${pc(i)}">${c.pos}</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:36px;border-radius:2px;background:${c.color};box-shadow:0 0 6px ${c.color};flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:15px;font-weight:700;letter-spacing:-0.4px;">${c.name}</div>
+          <div class="drv-sub">${c.drivers}</div>
+          <div class="bar-bg"><div class="bar-fg" style="background:${c.color};width:${c.pts>0?Math.round(c.pts/mx*100):2}%;"></div></div>
+        </div>
+      </div>
+      <div></div>
+      <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;text-align:right;">${c.pts}</div>
+    </div>`).join('');
+}
+
+function renderNews(){
+  document.getElementById('news-items').innerHTML=news.map(n=>`
+    <a class="news-item" href="${n.url}" target="_blank" rel="noopener noreferrer">
+      <span class="ntag ${ntc[n.tag]||'nt-race'}">${n.label}</span>
+      <div class="news-hl">${n.hl}</div>
+      <div class="news-ex">${n.ex}</div>
+      <div class="news-meta">
+        <span>${n.time}</span>
+        <span>${n.reads} reads</span>
+        <span class="news-src">↗ Read story</span>
+      </div>
+    </a>`).join('');
+}
+
+function renderRecaps(){
+  document.getElementById('recap-list').innerHTML=recaps.map((r,i)=>`
+    <div class="recap-card glass" style="position:relative;" id="rc-${i}">
+      <div class="recap-trigger" onclick="toggleRecap(${i})">
+        <div class="recap-flag">${r.flag}</div>
+        <div class="recap-meta">
+          <div class="recap-title-sm">${r.title}</div>
+          <div class="recap-date-sm">${r.sub}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="rtag ${r.tag==='sprint'?'rt-sprint':'rt-race'}">${r.tag==='sprint'?'Sprint':'Race'}</span>
+          <div class="recap-chevron">▼</div>
+        </div>
+      </div>
+      <div class="recap-body">
+        <div class="recap-inner">
+          <div class="podium-trio">
+            <div class="pod-cell"><div class="pod-em">🥇</div><div class="pod-nm">${r.p1.name}</div><div class="pod-tm">${r.p1.team}</div></div>
+            <div class="pod-cell"><div class="pod-em">🥈</div><div class="pod-nm">${r.p2.name}</div><div class="pod-tm">${r.p2.team}</div></div>
+            <div class="pod-cell"><div class="pod-em">🥉</div><div class="pod-nm">${r.p3.name}</div><div class="pod-tm">${r.p3.team}</div></div>
+          </div>
+          <div class="recap-txt">${r.txt}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleRecap(i){
+  const card=document.getElementById('rc-'+i);
+  card.classList.toggle('open');
+}
+
+function renderCalendar(){
+  const sm={
+    done:`<div class="pill pill-dim" style="font-size:10px;padding:4px 10px;">Done</div>`,
+    live:`<div class="pill pill-orange" style="font-size:10px;padding:4px 10px;"><span class="live-dot" style="width:5px;height:5px;margin-right:3px;"></span>Live</div>`,
+    upcoming:''
+  };
+  document.getElementById('cal-rows').innerHTML=calendar.map(r=>`
+    <div class="cal-row">
+      <span class="cal-rn">${r.rnd}</span>
+      <span class="cal-fl">${r.flag}</span>
+      <div><div class="cal-nm">${r.name}</div><div class="cal-ct">${r.circuit}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <span class="cal-dt">${r.date}</span>${sm[r.status]}
+      </div>
+    </div>`).join('');
+}
+
+function renderHighlights(){
+  const years=[...new Set(highlights.map(h=>h.year))].sort((a,b)=>b-a);
+  document.getElementById('highlights-list').innerHTML=years.map(yr=>`
+    <div style="margin-bottom:20px;">
+      <div class="yr-hdr">${yr}</div>
+      ${highlights.filter(h=>h.year===yr).map(h=>`
+        <a class="hl-card" href="${h.url}" target="_blank" rel="noopener noreferrer">
+          <div class="hl-thumb">${h.em}</div>
+          <div class="hl-info">
+            <div class="hl-title">${h.title}</div>
+            <div class="hl-desc">${h.desc}</div>
+            <div class="hl-meta">
+              <span>${h.gp}</span>
+              <span class="hl-type">${h.type}</span>
+              <span class="hl-link">↗</span>
+            </div>
+          </div>
+        </a>`).join('')}
+    </div>`).join('');
+}
+
+/* ─────────────────────────────────────────────
+   TRACK DOMINATION
+───────────────────────────────────────────── */
+let selected=[];
+
+function renderCompareSelector(){
+  document.getElementById('cmpSelector').innerHTML=drivers.slice(0,12).map((d,i)=>`
+    <button class="cmp-btn${selected.includes(i)?' active':''}" onclick="toggleCmp(${i})">
+      <div class="cmp-flag">${d.flag}</div>
+      <div class="cmp-name">${d.short}</div>
+      <div class="cmp-team" style="color:${d.color};">${d.team}</div>
+      <div class="cmp-pts" style="color:${selected.includes(i)?d.color:'var(--t3)'};">${d.pts}</div>
+    </button>`).join('');
+}
+
+function toggleCmp(i){
+  if(selected.includes(i)){selected=selected.filter(x=>x!==i);}
+  else{if(selected.length>=2)selected.shift();selected.push(i);}
+  renderCompareSelector();
+  renderComparePanel();
+}
+
+/* Shanghai track layout path segments with driver assignments */
+function buildTrackSVG(d1,d2){
+  // Simplified Shanghai circuit as SVG path segments
+  // Each segment is given a driver color based on domination
+  const segments=[
+    {id:'s1', label:'S1', path:'M 60 180 Q 60 80 160 60', dominated:0},
+    {id:'s2', label:'S2', path:'M 160 60 Q 260 40 340 60', dominated:0},
+    {id:'s3', label:'S3', path:'M 340 60 Q 420 70 440 120', dominated:1},
+    {id:'s4', label:'S4', path:'M 440 120 Q 460 160 440 200', dominated:1},
+    {id:'s5', label:'S5', path:'M 440 200 Q 420 260 360 280', dominated:0},
+    {id:'s6', label:'S6', path:'M 360 280 Q 300 300 240 290', dominated:1},
+    {id:'s7', label:'S7', path:'M 240 290 Q 180 280 160 240', dominated:0},
+    {id:'s8', label:'S8', path:'M 160 240 Q 140 220 120 220', dominated:1},
+    {id:'s9', label:'S9', path:'M 120 220 Q 70 220 60 180', dominated:0},
+  ];
+
+  const colors=[d1.color,d2.color];
+  const pathEls=segments.map(s=>`
+    <path d="${s.path}" fill="none" stroke="${colors[s.dominated]}" stroke-width="6"
+      stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    <path d="${s.path}" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="8"
+      stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+
+  // sector labels positioned approximately
+  const sectorLabels=`
+    <text x="95" y="115" fill="rgba(255,255,255,0.55)" font-size="10" font-weight="600" font-family="-apple-system,sans-serif" text-anchor="middle">S1</text>
+    <text x="255" y="48" fill="rgba(255,255,255,0.55)" font-size="10" font-weight="600" font-family="-apple-system,sans-serif" text-anchor="middle">S2</text>
+    <text x="455" y="165" fill="rgba(255,255,255,0.55)" font-size="10" font-weight="600" font-family="-apple-system,sans-serif" text-anchor="middle">S3</text>`;
+
+  return `<svg class="track-svg" viewBox="0 0 520 320" style="height:200px;">
+    <defs>
+      <filter id="glow1"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="glow2"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <!-- track base -->
+    <path d="M 60 180 Q 60 80 160 60 Q 260 40 340 60 Q 420 70 440 120 Q 460 160 440 200 Q 420 260 360 280 Q 300 300 240 290 Q 180 280 160 240 Q 140 220 120 220 Q 70 220 60 180 Z"
+      fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="10" stroke-linecap="round"/>
+    ${pathEls.split('</path>').filter((_,i)=>i%2===1).join('</path>')+'</path>'}
+    ${segments.map(s=>`<path d="${s.path}" fill="none" stroke="${colors[s.dominated]}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow1)" opacity="0.85"/>`).join('')}
+    ${sectorLabels}
+    <!-- start/finish line -->
+    <line x1="57" y1="170" x2="63" y2="190" stroke="white" stroke-width="2" opacity="0.7"/>
+    <text x="44" y="185" fill="rgba(255,255,255,0.45)" font-size="8" font-family="-apple-system,sans-serif">START</text>
+  </svg>`;
+}
+
+function renderComparePanel(){
+  const panel=document.getElementById('comparePanel');
+  if(selected.length<2){
+    panel.innerHTML=`<div class="glass card" style="padding:32px 20px;text-align:center;margin-bottom:14px;">
+      <div style="font-size:36px;margin-bottom:10px;">📊</div>
+      <div style="font-size:15px;font-weight:600;color:var(--t2);margin-bottom:4px;">Select two drivers to compare</div>
+      <div style="font-size:13px;color:var(--t3);">Tap any two drivers above</div>
+    </div>`;return;
+  }
+  const d1=drivers[selected[0]], d2=drivers[selected[1]];
+  const mx=Math.max(d1.pts,d2.pts)||1;
+
+  const metrics=[
+    {lbl:'Points',   v1n:d1.pts,  v2n:d2.pts,  higher:true},
+    {lbl:'Wins',     v1n:d1.wins, v2n:d2.wins, higher:true},
+    {lbl:'Poles',    v1n:d1.poles,v2n:d2.poles,higher:true},
+    {lbl:'Fastest',  v1n:d1.fl,   v2n:d2.fl,   higher:true},
+    {lbl:'Avg Pos',  v1n:d1.avgPos,v2n:d2.avgPos,higher:false},
+    {lbl:'Races',    v1n:d1.races,v2n:d2.races, higher:false},
+  ];
+
+  const svgW=500,svgH=110,pL=36,pR=14,pT=12,pB=22;
+  const cW=svgW-pL-pR,cH=svgH-pT-pB;
+  const allT=[...d1.lapTimes,...d2.lapTimes];
+  const minT=Math.min(...allT)-0.5,maxT=Math.max(...allT)+0.5;
+  const xS=i=>(i/(d1.lapTimes.length-1))*cW+pL;
+  const yS=v=>pT+cH-(v-minT)/(maxT-minT)*cH;
+
+  const mk=(lts,dx)=>lts.map((v,i)=>`${i===0?'M':'L'}${xS(i).toFixed(1)},${yS(v).toFixed(1)}`).join(' ');
+  const path1=mk(d1.lapTimes,0), path2=mk(d2.lapTimes,0);
+
+  // Build sector times from driver data
+  const sectors=[['S1',d1.sectors.s1,d2.sectors.s1],['S2',d1.sectors.s2,d2.sectors.s2],['S3',d1.sectors.s3,d2.sectors.s3]];
+
+  panel.innerHTML=`
+    <!-- VS HEADER -->
+    <div class="glass card" style="margin-bottom:14px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:1fr 44px 1fr;gap:10px;align-items:center;padding:18px;border-bottom:0.5px solid var(--bdr2);">
+        <div style="text-align:left;">
+          <div style="font-size:11px;color:var(--t3);margin-bottom:2px;">${d1.flag} ${d1.team}</div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;color:${d1.color};">${d1.short}</div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:${d1.color};margin-top:4px;">${d1.pts}</div>
+          <div style="font-size:10px;color:var(--t3);">points</div>
+        </div>
+        <div style="font-size:18px;color:var(--t3);font-weight:300;text-align:center;">vs</div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--t3);margin-bottom:2px;">${d2.flag} ${d2.team}</div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;color:${d2.color};">${d2.short}</div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:${d2.color};margin-top:4px;">${d2.pts}</div>
+          <div style="font-size:10px;color:var(--t3);">points</div>
+        </div>
+      </div>
+
+      ${metrics.map(m=>{
+        const b1=(m.higher&&m.v1n>m.v2n)||(!m.higher&&m.v1n<m.v2n&&m.v1n>0);
+        const b2=(m.higher&&m.v2n>m.v1n)||(!m.higher&&m.v2n<m.v1n&&m.v2n>0);
+        const tot=m.v1n+m.v2n||1;
+        const w1=Math.round(m.v1n/tot*100)||50,w2=100-w1;
+        const c1=b1?d1.color:m.v1n===m.v2n?'var(--t2)':'var(--t3)';
+        const c2=b2?d2.color:m.v1n===m.v2n?'var(--t2)':'var(--t3)';
+        return `<div style="display:grid;grid-template-columns:1fr 80px 1fr;padding:10px 18px;gap:8px;border-bottom:0.5px solid var(--bdr2);align-items:center;">
+          <div style="font-size:15px;font-weight:${b1?800:500};color:${c1};text-align:right;">${m.v1n}</div>
+          <div>
+            <div style="font-size:9px;font-weight:700;color:var(--t3);text-align:center;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:4px;">${m.lbl}</div>
+            <div style="display:flex;height:4px;border-radius:3px;overflow:hidden;gap:1px;">
+              <div style="width:${w1}%;background:${d1.color};border-radius:3px;transition:width 0.6s cubic-bezier(.34,1.56,.64,1);"></div>
+              <div style="width:${w2}%;background:${d2.color};border-radius:3px;transition:width 0.6s cubic-bezier(.34,1.56,.64,1);"></div>
+            </div>
+          </div>
+          <div style="font-size:15px;font-weight:${b2?800:500};color:${c2};">${m.v2n}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- TRACK LAYOUT -->
+    <div class="glass card" style="margin-bottom:14px;">
+      <div style="padding:14px 18px 4px;font-size:13px;font-weight:600;color:var(--t2);">Track Domination — Shanghai</div>
+      <div class="track-layout-wrap">
+        ${buildTrackSVG(d1,d2)}
+        <div class="track-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:${d1.color};box-shadow:0 0 5px ${d1.color};"></div>${d1.flag} ${d1.short} dominated sectors</div>
+          <div class="leg-item"><div class="leg-dot" style="background:${d2.color};box-shadow:0 0 5px ${d2.color};"></div>${d2.flag} ${d2.short} dominated sectors</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAP CHART -->
+    <div class="glass card" style="margin-bottom:14px;">
+      <div style="padding:14px 18px 4px;font-size:13px;font-weight:600;color:var(--t2);">Lap Time Chart — Chinese GP Sprint</div>
+      <div style="padding:4px 18px 14px;">
+        <svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:${svgH}px;overflow:visible;">
+          ${[0,0.33,0.66,1].map(f=>{
+            const y=(pT+cH*f).toFixed(1);
+            const t=(maxT-f*(maxT-minT)).toFixed(1);
+            return `<line x1="${pL}" y1="${y}" x2="${svgW-pR}" y2="${y}" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+              <text x="${pL-4}" y="${parseFloat(y)+4}" text-anchor="end" font-size="8" fill="rgba(255,255,255,0.25)" font-family="-apple-system,sans-serif">${t}</text>`;
+          }).join('')}
+          ${[1,5,10,15,19].map(l=>{
+            const x=xS(l-1).toFixed(1);
+            return `<text x="${x}" y="${svgH-4}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.25)" font-family="-apple-system,sans-serif">${l}</text>`;
+          }).join('')}
+          <path d="${path1}" fill="none" stroke="${d1.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow1)"/>
+          <path d="${path2}" fill="none" stroke="${d2.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 2"/>
+        </svg>
+        <div style="display:flex;gap:16px;margin-top:4px;font-size:11px;">
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:2px;background:${d1.color};border-radius:1px;"></div><span style="color:var(--t2);">${d1.short}</span></div>
+          <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:2px;background:${d2.color};border-radius:1px;border:1px dashed ${d2.color};"></div><span style="color:var(--t2);">${d2.short}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTOR TIMES -->
+    <div class="glass card" style="margin-bottom:14px;">
+      <div style="padding:12px 18px 0;border-bottom:0.5px solid var(--bdr2);">
+        <div style="display:grid;grid-template-columns:60px 1fr 1fr 70px;gap:8px;padding-bottom:8px;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:0.5px;text-transform:uppercase;">
+          <span></span><span style="text-align:right;color:${d1.color};">${d1.short}</span>
+          <span style="text-align:right;color:${d2.color};">${d2.short}</span><span style="text-align:right;">Delta</span>
+        </div>
+      </div>
+      ${sectors.map(([s,t1,t2])=>{
+        const v1=parseFloat(t1),v2=parseFloat(t2);
+        const b1=v1<v2,delta=(v1-v2).toFixed(3);
+        return `<div style="display:grid;grid-template-columns:60px 1fr 1fr 70px;padding:10px 18px;gap:8px;align-items:center;border-bottom:0.5px solid var(--bdr2);">
+          <span style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:0.3px;text-transform:uppercase;">${s}</span>
+          <span style="font-size:13px;font-weight:${b1?700:500};color:${b1?'#DA70D6':'var(--t2)'};text-align:right;font-variant-numeric:tabular-nums;">${t1}</span>
+          <span style="font-size:13px;font-weight:${!b1?700:500};color:${!b1?'#DA70D6':'var(--t2)'};text-align:right;font-variant-numeric:tabular-nums;">${t2}</span>
+          <span style="font-size:12px;font-weight:700;color:${b1?d1.color:d2.color};text-align:right;">${b1?'':'+'}${delta}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+/* ─────────────────────────────────────────────
+   DRIVER POPUP
+───────────────────────────────────────────── */
+function openDriver(i){
+  const d=drivers[i];
+  const c=d.color, c2=d.color2||d.color;
+  const box=document.getElementById('popupBox');
+  box.style.borderColor=`${c}55`;
+  box.innerHTML=`
+    <div class="popup-header" style="background:linear-gradient(135deg,${c}22,${c2}11);">
+      <div>
+        <div style="font-size:11px;color:${c};font-weight:700;letter-spacing:0.4px;margin-bottom:4px;">${d.flag} ${d.team}</div>
+        <div style="font-size:24px;font-weight:800;letter-spacing:-0.7px;color:var(--t1);">${d.name}</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:2px;">P${d.pos} · ${d.pts} points</div>
+      </div>
+      <button class="popup-close" onclick="closePopup()">✕</button>
+    </div>
+    <div class="popup-stats-grid">
+      <div class="popup-stat">
+        <div class="popup-stat-lbl" style="color:${c}AA;">Points</div>
+        <div class="popup-stat-val" style="color:${c};">${d.pts}</div>
+        <div class="popup-stat-sub" style="color:${c}88;">2026</div>
+      </div>
+      <div class="popup-stat">
+        <div class="popup-stat-lbl" style="color:${c}AA;">Wins</div>
+        <div class="popup-stat-val" style="color:${c};">${d.wins}</div>
+        <div class="popup-stat-sub" style="color:${c}88;">2026</div>
+      </div>
+      <div class="popup-stat">
+        <div class="popup-stat-lbl" style="color:${c}AA;">Poles</div>
+        <div class="popup-stat-val" style="color:${c};">${d.poles}</div>
+        <div class="popup-stat-sub" style="color:${c}88;">2026</div>
+      </div>
+      <div class="popup-stat">
+        <div class="popup-stat-lbl" style="color:${c}AA;">F. Laps</div>
+        <div class="popup-stat-val" style="color:${c};">${d.fl}</div>
+        <div class="popup-stat-sub" style="color:${c}88;">2026</div>
+      </div>
+      <div class="popup-stat">
+        <div class="popup-stat-lbl" style="color:${c}AA;">Avg Pos</div>
+        <div class="popup-stat-val" style="color:${c};">${d.avgPos.toFixed(1)}</div>
+        <div class="popup-stat-sub" style="color:${c}88;">2026</div>
+      </div>
+      <div class="popup-stat">
+        <div class="popup-stat-lbl" style="color:${c}AA;">Races</div>
+        <div class="popup-stat-val" style="color:${c};">${d.races}</div>
+        <div class="popup-stat-sub" style="color:${c}88;">2026</div>
+      </div>
+    </div>
+    <div class="popup-bio" style="border-top:0.5px solid ${c}33;">${d.bio}</div>`;
+  document.getElementById('popupOverlay').classList.add('show');
+}
+
+function closePopup(e){
+  if(!e||e.target===document.getElementById('popupOverlay')){
+    document.getElementById('popupOverlay').classList.remove('show');
+  }
+}
+
+/* ─────────────────────────────────────────────
+   TAB SWITCH
+───────────────────────────────────────────── */
+function switchTab(tab,btn,isSidebar){
+  const tabs=['timing','drivers','track','recap','news','highlights','widgets'];
+  tabs.forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    if(el) el.classList.toggle('hidden',t!==tab);
+  });
+  // mobile tab bar
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  // sidebar
+  document.querySelectorAll('.snav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn){
+    btn.classList.add('active');
+    // sync the other nav
+    if(isSidebar){
+      const idx=['timing','drivers','track','recap','news','highlights','widgets'].indexOf(tab);
+      const mobileBtns=document.querySelectorAll('.tab-btn');
+      if(mobileBtns[idx]) mobileBtns[idx].classList.add('active');
+    } else {
+      const idx=['timing','drivers','track','recap','news','highlights','widgets'].indexOf(tab);
+      const snavBtns=document.querySelectorAll('.snav-btn');
+      if(snavBtns[idx]) snavBtns[idx].classList.add('active');
+    }
+  }
+  document.getElementById('main-scroll').scrollTop=0;
+}
+
+/* ─────────────────────────────────────────────
+   PWA
+───────────────────────────────────────────── */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  document.getElementById('pwaBanner').classList.add('visible');
+});
+function installPWA(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(()=>{
+      deferredPrompt=null;
+      document.getElementById('pwaBanner').classList.remove('visible');
+    });
+  }
+}
+
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+renderDrivers();
+renderConstructors();
+renderNews();
+renderRecaps();
+renderCalendar();
+renderHighlights();
+renderCompareSelector();
+renderComparePanel();
+</script>
+<script>if("serviceWorker"in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script>
+</body>
+</html>
